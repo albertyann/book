@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>阅读列表</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+            min-height: 100vh;
+        }
+        .book-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .book-card:hover {
+            transform: translateY(-8px);
+        }
+        .category-tab.active {
+            position: relative;
+            font-weight: 600;
+        }
+        .category-tab.active:after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: #3b82f6;
+            border-radius: 3px;
+        }
+        .book-cover {
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="text-gray-800 p-4 md:p-6">
+    <div class="max-w-7xl mx-auto">
+        <!-- 页面标题 -->
+        <header class="text-center mb-10 md:mb-14">
+            <div class="md:text-2xl mb-3 text-gray-900">这是一个阅读列表</div>
+            <p class="text-gray-600 max-w-2xl mx-auto">收藏计算机科学、思想哲学与经典小说领域的精选好书，点击链接可访问豆瓣详情或在线阅读</p>
+        </header>
+        
+        <!-- 分类选项卡 -->
+        <div class="flex flex-wrap justify-center mb-10 border-b border-gray-200">
+            <button class="category-tab active px-5 py-3 text-lg font-medium text-blue-600" data-category="all">
+                <i class="fas fa-book-open mr-2"></i>全部书籍
+            </button>
+            <button class="category-tab px-5 py-3 text-lg font-medium text-gray-600 hover:text-blue-500" data-category="计算机">
+                <i class="fas fa-laptop-code mr-2"></i>计算机
+            </button>
+            <button class="category-tab px-5 py-3 text-lg font-medium text-gray-600 hover:text-blue-500" data-category="思想">
+                <i class="fas fa-brain mr-2"></i>思想
+            </button>
+            <button class="category-tab px-5 py-3 text-lg font-medium text-gray-600 hover:text-blue-500" data-category="小说">
+                <i class="fas fa-book mr-2"></i>小说
+            </button>
+        </div>
+        
+        <!-- 书籍列表 -->
+        <div id="books-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 md:gap-8">
+            <!-- 书籍卡片将通过JavaScript动态生成 -->
+        </div>
+        
+        <!-- 页脚 -->
+        <footer class="mt-12 pt-8 border-t border-gray-200 text-center text-gray-500 text-sm">
+            <p>© 2025 个人书库 | 仅用于学习展示 | 浙ICP备2024112329号-2</p>
+        </footer>
+    </div>
+    
+    <!-- 书籍详情模态框 -->
+    <div id="book-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-xl max-w-3xl w-full max-h-[90vh] overflow-auto p-6 md:p-8">
+            <div class="flex justify-between items-start mb-6">
+                <h3 id="modal-title" class="text-2xl font-bold text-gray-900"></h3>
+                <button id="close-modal" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            <div id="modal-content" class="flex flex-col md:flex-row gap-6">
+                <!-- 内容通过JavaScript填充 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 书籍数据
+        const books = [
+            {
+                id: 1,
+                title: "原因与结果法则",
+                author: "詹姆斯·埃伦",
+                category: "思想",
+                coverColor: "bg-yellow-100",
+                coverText: "原因与结果法则",
+                coverImg: "./images/s1814958.jpg",
+                description: "",
+                doubanLink: "https://book.douban.com/subject/1163316/",
+                readLink: "https://book.douban.com/subject/1163316/",
+                isbn: "9787544228176"
+            },
+            {
+                id: 2,
+                title: "计算思维",
+                author: "周以真",
+                category: "计算机",
+                coverColor: "bg-green-100",
+                coverText: "计算思维",
+                coverImg: "./images/none.png",
+                description: "",
+                doubanLink: "",
+                readLink: "/subject/计算思维",
+                isbn: "-"
+            }
+        ];
+
+        // 获取DOM元素
+        const booksContainer = document.getElementById('books-container');
+        const categoryTabs = document.querySelectorAll('.category-tab');
+        const bookModal = document.getElementById('book-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalContent = document.getElementById('modal-content');
+        const closeModal = document.getElementById('close-modal');
+
+        // 初始化显示所有书籍
+        function renderBooks(category = 'all') {
+            booksContainer.innerHTML = '';
+            
+            const filteredBooks = category === 'all' 
+                ? books 
+                : books.filter(book => book.category === category);
+            
+            filteredBooks.forEach(book => {
+                const bookCard = document.createElement('div');
+                bookCard.className = 'book-card bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100';
+                bookCard.innerHTML = `
+                    <div class="p-5">
+                        <div class="mb-5 flex justify-center">
+                            <div class="book-cover rounded-lg flex items-center justify-center cursor-pointer transition-transform hover:scale-105" data-book-id="${book.id}">
+                                <div class="text-center">
+                                    <div class="text-gray-800 font-bold text-lg overflow-hidden" style="height:170px;">
+                                        <img src="${book.coverImg}" alt="${book.title}" class="h-30" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <h3 class="font-bold text-lg mb-1 text-gray-900 truncate">
+                            ${book.title}
+                        </h3>
+                        <p class="text-gray-600 mb-3">${book.author}</p>
+
+                        <div class="mb-4">
+                            <span class="px-2 py-1 text-xs font-medium rounded-full ${getCategoryColor(book.category)}">
+                                ${book.category}
+                            </span>
+                        </div>
+                        
+                        <div class="flex justify-center space-x-3">
+                            <a href="${book.doubanLink}" target="_blank" 
+                            class="flex items-center justify-center w-10 h-10 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-full transition-colors"
+                            title="豆瓣">
+                                <i class="fab fa-douban text-lg"><img src="./images/douban.png" style="width:24px;height:24px;"/></i>
+                            </a>
+                            <a href="${book.readLink}" target="_blank" 
+                            class="flex items-center justify-center w-10 h-10 bg-green-50 text-green-600 hover:bg-green-100 rounded-full transition-colors"
+                            title="阅读">
+                                <i class="fas fa-book-reader text-lg"></i>
+                            </a>
+                        </div>
+                    </div>
+                `;
+                booksContainer.appendChild(bookCard);
+            });
+        }
+
+        // 根据评分生成星星
+        function getStarRating(rating) {
+            const fullStars = Math.floor(rating);
+            const halfStar = rating % 1 >= 0.5;
+            let stars = '';
+            
+            for (let i = 0; i < fullStars; i++) {
+                stars += '<i class="fas fa-star"></i>';
+            }
+            
+            if (halfStar) {
+                stars += '<i class="fas fa-star-half-alt"></i>';
+            }
+            
+            const emptyStars = 5 - Math.ceil(rating);
+            for (let i = 0; i < emptyStars; i++) {
+                stars += '<i class="far fa-star"></i>';
+            }
+            
+            return stars;
+        }
+
+        // 根据分类获取颜色
+        function getCategoryColor(category) {
+            switch(category) {
+                case '计算机': return 'bg-blue-100 text-blue-800';
+                case '思想': return 'bg-purple-100 text-purple-800';
+                case '小说': return 'bg-yellow-100 text-yellow-800';
+                default: return 'bg-gray-100 text-gray-800';
+            }
+        }
+
+        // 显示书籍详情模态框
+        function showBookDetails(bookId) {
+            const book = books.find(b => b.id === bookId);
+            if (!book) return;
+            
+            modalTitle.textContent = book.title;
+            modalContent.innerHTML = `
+                <div class="md:w-2/5">
+                    <div class="book-cover w-full h-64 ${book.coverColor} rounded-xl flex items-center justify-center mb-4">
+                        <div class="text-center p-5">
+                            <div class="text-gray-800 font-bold text-2xl mb-2">${book.coverText}</div>
+                            <div class="text-gray-600">${book.title}</div>
+                        </div>
+                    </div>
+                    <div class="flex space-x-3">
+                        <a href="${book.doubanLink}" target="_blank" class="flex-1 flex items-center justify-center px-4 py-3 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors">
+                            <i class="fab fa-douban mr-2"></i>
+                            <span>访问豆瓣</span>
+                        </a>
+                        <a href="${book.readLink}" target="_blank" class="flex-1 flex items-center justify-center px-4 py-3 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors">
+                            <i class="fas fa-book-open mr-2"></i>
+                            <span>开始阅读</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="md:w-3/5">
+                    <div class="mb-4">
+                        <h4 class="font-bold text-lg mb-2 text-gray-900">书籍信息</h4>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <div class="text-gray-500 text-sm">作者</div>
+                                <div class="font-medium">${book.author}</div>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <div class="text-gray-500 text-sm">分类</div>
+                                <div class="font-medium"><span class="${getCategoryColor(book.category)} px-2 py-1 rounded-full text-xs">${book.category}</span></div>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <div class="text-gray-500 text-sm">豆瓣评分</div>
+                                <div class="font-medium">${book.rating} <span class="text-yellow-500 ml-1">${getStarRating(book.rating)}</span></div>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <div class="text-gray-500 text-sm">ISBN</div>
+                                <div class="font-medium">${book.isbn}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-lg mb-2 text-gray-900">内容简介</h4>
+                        <p class="text-gray-700 leading-relaxed">${book.description}</p>
+                    </div>
+                </div>
+            `;
+            
+            bookModal.classList.remove('hidden');
+        }
+
+        // 事件监听
+        categoryTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // 更新活动标签
+                categoryTabs.forEach(t => {
+                    t.classList.remove('active', 'text-blue-600');
+                    t.classList.add('text-gray-600');
+                });
+                tab.classList.add('active', 'text-blue-600');
+                tab.classList.remove('text-gray-600');
+                
+                // 渲染对应分类的书籍
+                const category = tab.getAttribute('data-category');
+                renderBooks(category);
+                
+                // 重新绑定封面点击事件
+                bindCoverClickEvents();
+            });
+        });
+
+        // 绑定封面点击事件
+        function bindCoverClickEvents() {
+            document.querySelectorAll('.book-cover').forEach(cover => {
+                cover.addEventListener('click', () => {
+                    const bookId = parseInt(cover.getAttribute('data-book-id'));
+                    showBookDetails(bookId);
+                });
+            });
+        }
+
+        // 关闭模态框
+        closeModal.addEventListener('click', () => {
+            bookModal.classList.add('hidden');
+        });
+
+        // 点击模态框外部关闭
+        bookModal.addEventListener('click', (e) => {
+            if (e.target === bookModal) {
+                bookModal.classList.add('hidden');
+            }
+        });
+
+        // 初始渲染
+        renderBooks();
+        bindCoverClickEvents();
+    </script>
+</body>
+</html>
